@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pakistan — Topography & the 2022 Floods</title>
+<title>Pakistan — Relief in Motion</title>
 <style>
   :root{
     --bg-deep:#0a0e14;
@@ -19,7 +19,8 @@
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg-deep);
     font-family: 'Segoe UI', Helvetica, Arial, sans-serif; color:var(--ink);}
   #scene-wrap{position:fixed;inset:0;}
-  canvas{display:block;}
+  canvas{display:block; cursor:grab;}
+  canvas:active{cursor:grabbing;}
   #bgGrad{position:fixed;inset:0;z-index:0;
     background:
       radial-gradient(ellipse at 30% 20%, #16202f 0%, transparent 55%),
@@ -111,9 +112,43 @@
   .city-label{
     position:absolute; z-index:4; transform:translate(-50%,-140%);
     font-size:11px; color:#f2f5f9; text-shadow:0 1px 4px #000, 0 0 6px #000;
-    pointer-events:none; white-space:nowrap; display:flex; align-items:center; gap:5px;
+    cursor:pointer; pointer-events:auto; display:flex; align-items:center; gap:5px;
+    transition: transform 0.15s ease, color 0.15s ease;
   }
-  .city-label .pin{width:5px;height:5px;border-radius:50%; background:#ffd479; box-shadow:0 0 6px #ffd479;}
+  .city-label:hover{
+    transform:translate(-50%,-150%) scale(1.1);
+    color: var(--accent-water);
+  }
+  .city-label .pin{width:6px;height:6px;border-radius:50%; background:#ffd479; box-shadow:0 0 6px #ffd479;}
+
+  /* ---- Fact Popup Modal ---- */
+  #modal{
+    position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.9);
+    width:380px; max-width:90vw; background:var(--bg-mid); border:1px solid var(--accent-water);
+    border-radius:12px; padding:20px; z-index:10; opacity:0; pointer-events:none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    box-shadow:0 20px 50px rgba(0,0,0,0.7);
+  }
+  #modal.active{
+    opacity:1; pointer-events:auto; transform:translate(-50%, -50%) scale(1);
+  }
+  #modal h3{
+    margin:0 0 6px 0; font-size:18px; color:var(--accent-water);
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+  #modal .tag{
+    font-size:10px; text-transform:uppercase; letter-spacing:1px;
+    color:var(--accent-flood); font-weight:700; margin-bottom:12px; display:block;
+  }
+  #modal p{
+    font-size:12.5px; line-height:1.6; color:var(--ink-dim); margin:0 0 16px 0;
+  }
+  #modalClose{
+    background:var(--panel-border); color:var(--ink); border:none;
+    padding:6px 14px; border-radius:5px; font-size:11px; cursor:pointer;
+    float:right; transition:background 0.15s;
+  }
+  #modalClose:hover{ background:var(--accent-water); color:#000; }
 
   #loading{
     position:fixed; inset:0; z-index:20; background:var(--bg-deep);
@@ -178,7 +213,14 @@
     <label><input type="checkbox" id="toggleFloodZone" checked> Boundary outline</label>
     <label><input type="checkbox" id="toggleSpin"> Auto-rotate</label>
   </div>
-  <div class="hint">Drag to orbit · scroll / pinch to zoom</div>
+  <div class="hint">Click location label to view 2022 impact facts · Drag to orbit</div>
+</div>
+
+<div id="modal">
+  <h3 id="modalTitle">City Name</h3>
+  <span class="tag" id="modalTag">2022 Impact Analysis</span>
+  <p id="modalBody">Details go here...</p>
+  <button id="modalClose">Close</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -196,7 +238,6 @@ function project(lon,lat){
   return { x:(lon-LON_C)*DEG, z:(lat-LAT_C)*DEG };
 }
 
-// Updated precision boundary coordinates matching the official map shape shown in the photo
 const PAK_BORDER=[
   [75.5, 37.0], [77.0, 35.8], [76.2, 34.6], [74.6, 34.8], [74.2, 33.8],
   [74.5, 32.5], [75.2, 31.6], [74.0, 29.8], [72.2, 28.3], [70.5, 27.8],
@@ -224,18 +265,16 @@ function fbm(x,y){
   return n;
 }
 
-// Geographic mountain ranges accurately positioned according to the map
 const MOUNTAIN_BUMPS=[
-  {lon:75.5, lat:35.8, r:2.2, h:1.00}, // Karakoram / Gilgit-Baltistan
-  {lon:74.2, lat:35.2, r:1.6, h:0.92}, // Nanga Parbat / Himalaya
-  {lon:71.8, lat:36.2, r:1.7, h:0.82}, // Hindu Kush / Chitral
-  {lon:70.1, lat:31.8, r:1.5, h:0.42}, // Sulaiman Range
-  {lon:67.2, lat:30.2, r:1.7, h:0.38}, // Quetta / Ziarat highlands
-  {lon:64.8, lat:28.2, r:5.2, h:0.28}, // Balochistan plateau
-  {lon:66.5, lat:26.2, r:2.6, h:0.22}, // Kirthar Range
+  {lon:75.5, lat:35.8, r:2.2, h:1.00},
+  {lon:74.2, lat:35.2, r:1.6, h:0.92},
+  {lon:71.8, lat:36.2, r:1.7, h:0.82},
+  {lon:70.1, lat:31.8, r:1.5, h:0.42},
+  {lon:67.2, lat:30.2, r:1.7, h:0.38},
+  {lon:64.8, lat:28.2, r:5.2, h:0.28},
+  {lon:66.5, lat:26.2, r:2.6, h:0.22},
 ];
 
-// Elevation model with Indus basin and tributaries (Jhelum, Chenab, Ravi, Sutlej)
 function elevation(lon,lat){
   let e=0.04;
   const latRad=lat*Math.PI/180;
@@ -246,14 +285,12 @@ function elevation(lon,lat){
     e += b.h*Math.exp(-d*d*1.15);
   }
 
-  // Indus River main stem
   const indusPath = 68.1 + (lat - 24.0) * 0.46;
   const distToIndus = Math.abs(lon - indusPath);
   if(lat > 24 && lat < 34 && distToIndus < 2.0) {
     e *= (0.22 + 0.78 * (distToIndus / 2.0));
   }
 
-  // Thar Desert region (South-East)
   if(lon>69.5 && lon<71.8 && lat>24.0 && lat<28.2){
     e += 0.02 * (0.5+0.5*Math.sin(lon*12+lat*8));
   }
@@ -301,7 +338,7 @@ function getColorForElevation(e, meltFactor, outside){
     {t:0.42, c:[0.55,0.40,0.27]},
     {t:0.65, c:[0.52,0.48,0.44]},
     {t:0.80, c:[0.75,0.75,0.75]},
-    {t:1.00, c:[0.98,0.98,1.00]}, // Glacier peak
+    {t:1.00, c:[0.98,0.98,1.00]},
   ];
 
   let adjustedE = e;
@@ -396,43 +433,134 @@ const flood=new THREE.Mesh(floodGeo, floodMat);
 flood.position.y=-1; 
 scene.add(flood);
 
-// Key cities and major provinces (Balochistan, Sindh, Punjab) from reference map
-const CITIES=[
-  {name:"ISLAMABAD", lon:73.04, lat:33.68},
-  {name:"Rawalpindi", lon:73.07, lat:33.60},
-  {name:"Peshawar", lon:71.52, lat:34.01},
-  {name:"Chitral", lon:71.78, lat:35.85},
-  {name:"Lahore", lon:74.35, lat:31.52},
-  {name:"Faisalabad", lon:73.08, lat:31.42},
-  {name:"Multan", lon:71.52, lat:30.15},
-  {name:"Quetta", lon:66.97, lat:30.17},
-  {name:"Sukkur", lon:68.85, lat:27.70},
-  {name:"Larkana", lon:68.21, lat:27.56},
-  {name:"Hyderabad", lon:68.37, lat:25.39},
-  {name:"Karachi", lon:67.00, lat:24.86},
-  {name:"Gwadar", lon:62.32, lat:25.12},
-  // Added Provinces:
-  {name:"BALOCHISTAN", lon:65.50, lat:28.50},
-  {name:"SINDH", lon:68.50, lat:26.00},
-  {name:"PUNJAB", lon:72.50, lat:31.00}
+// Location Database with 2022 Flood Facts
+const LOCATIONS=[
+  {
+    name:"BALOCHISTAN", lon:65.50, lat:28.50, type:"PROVINCE",
+    fact:"Balochistan received over 500% above average monsoon rainfall in 2022. Severe flash flooding washed away entire mountain villages, destroyed 300+ bridges, cut off highway routes, and killed over 330 people."
+  },
+  {
+    name:"SINDH", lon:68.50, lat:26.00, type:"PROVINCE",
+    fact:"Sindh was the worst-affected province, receiving 784% above normal rainfall. Massive standing lakes were formed, submerging entire agricultural districts, displacing over 4.5 million people, and destroying millions of acres of cotton and rice crops."
+  },
+  {
+    name:"PUNJAB", lon:72.50, lat:31.00, type:"PROVINCE",
+    fact:"Southern Punjab experienced catastrophic river overflows along the Indus and Chenab rivers, leading to severe damage to rural homes, livestock losses, and crop inundation in Rajanpur and Dera Ghazi Khan."
+  },
+  {
+    name:"ISLAMABAD", lon:73.04, lat:33.68, type:"CAPITAL",
+    fact:"The federal capital saw urban stream surges and heavy downpours during the monsoon sequence, serving as the central coordination hub for international airlifts and disaster relief efforts."
+  },
+  {
+    name:"Rawalpindi", lon:73.07, lat:33.60, type:"CITY",
+    fact:"Experienced dangerous water level rises in Nullah Lai during intense rainfall spikes, requiring high-alert monitoring and community evacuations along low-lying drainage channels."
+  },
+  {
+    name:"Peshawar", lon:71.52, lat:34.01, type:"CITY",
+    fact:"Faced flash urban flooding and served as a critical transit route for emergency relief dispatch into devastated northern districts of Khyber Pakhtunkhwa."
+  },
+  {
+    name:"Chitral", lon:71.78, lat:35.85, type:"REGION",
+    fact:"Extreme glacial lake outburst floods (GLOFs) coupled with heavy downpours destroyed mountain bridges, roads, and power infrastructure, isolating high-altitude valleys."
+  },
+  {
+    name:"Lahore", lon:74.35, lat:31.52, type:"CITY",
+    fact:"Sustained record monsoon rain spells causing urban inundation, while functioning as a major logistics hub for emergency supplies distributed to South Punjab."
+  },
+  {
+    name:"Faisalabad", lon:73.08, lat:31.42, type:"CITY",
+    fact:"Agricultural surrounding regions experienced crop disruption and urban drainage overflows due to prolonged rain spells during July and August 2022."
+  },
+  {
+    name:"Multan", lon:71.52, lat:30.15, type:"CITY",
+    fact:"Served as a key medical and emergency relief staging point for rural communities fleeing severe Indus River flooding in neighboring districts."
+  },
+  {
+    name:"Quetta", lon:66.97, lat:30.17, type:"CITY",
+    fact:"The provincial capital of Balochistan was briefly isolated from the rest of the country after floodwaters collapsed rail lines, telecommunication networks, and gas pipelines."
+  },
+  {
+    name:"Sukkur", lon:68.85, lat:27.70, type:"CITY",
+    fact:"The historic Sukkur Barrage faced critical high-level river discharge tests as floodwaters from upper rivers concentrated in northern Sindh."
+  },
+  {
+    name:"Larkana", lon:68.21, lat:27.56, type:"CITY",
+    fact:"Submerged under several feet of rainwater and flood runoff. Tens of thousands of displaced families were forced into temporary roadside relief camps."
+  },
+  {
+    name:"Hyderabad", lon:68.37, lat:25.39, type:"CITY",
+    fact:"Faced urban flooding combined with riverbank stress along the lower Indus, disrupting power grids and water filtration plants for days."
+  },
+  {
+    name:"Karachi", lon:67.00, lat:24.86, type:"CITY",
+    fact:"Suffered multiple severe urban flooding events in July and August 2022, inundating major thoroughfares, commercial zones, and residential neighborhoods."
+  },
+  {
+    name:"Gwadar", lon:62.32, lat:25.12, type:"PORT CITY",
+    fact:"Experienced flash flooding along coastal channels that inundated low-lying settlements and damaged fishing infrastructure."
+  }
 ];
 
 const cityGroup=new THREE.Group();
 const cityMarkers=[];
 const markerMat=new THREE.MeshBasicMaterial({color:0xffd479});
-CITIES.forEach(c=>{
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+// UI Elements for Fact Modal
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalTag = document.getElementById('modalTag');
+const modalBody = document.getElementById('modalBody');
+const modalClose = document.getElementById('modalClose');
+
+modalClose.addEventListener('click', ()=> modal.classList.remove('active'));
+
+function openFactModal(data){
+  modalTitle.textContent = data.name;
+  modalTag.textContent = (data.type || "LOCATION") + " · 2022 FLOOD IMPACT";
+  modalBody.textContent = data.fact;
+  modal.classList.add('active');
+}
+
+LOCATIONS.forEach(c=>{
   const p=project(c.lon,c.lat);
   const e=elevation(c.lon,c.lat)*HEIGHT_SCALE;
-  const m=new THREE.Mesh(new THREE.SphereGeometry(0.55,12,12), markerMat);
+  const m=new THREE.Mesh(new THREE.SphereGeometry(0.65,12,12), markerMat);
   m.position.set(p.x, e+0.9, p.z);
+  m.userData = c; // Attach location data
   cityGroup.add(m);
+
   const label=document.createElement('div');
   label.className='city-label';
   label.innerHTML='<span class="pin"></span>'+c.name;
+  label.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    openFactModal(c);
+  });
   document.body.appendChild(label);
-  cityMarkers.push({mesh:m, label});
+
+  cityMarkers.push({mesh:m, label, data:c});
 });
 scene.add(cityGroup);
+
+// Raycasting to allow clicking directly on 3D pin spheres
+window.addEventListener('click', (e)=>{
+  // Ignore clicks on UI elements
+  if(e.target.closest('#panel') || e.target.closest('#controls') || e.target.closest('#modal') || e.target.closest('#legend')) return;
+
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const intersects = raycaster.intersectObjects(cityGroup.children);
+  if(intersects.length > 0){
+    const clickedObj = intersects[0].object;
+    if(clickedObj.userData && clickedObj.userData.name){
+      openFactModal(clickedObj.userData);
+    }
+  }
+});
 
 // CONTROLS
 let radius=210, theta=Math.PI*0.32, phi=1.02;
