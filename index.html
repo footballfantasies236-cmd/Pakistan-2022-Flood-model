@@ -124,7 +124,7 @@
   /* ---- Fact Popup Modal ---- */
   #modal{
     position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.9);
-    width:380px; max-width:90vw; background:var(--bg-mid); border:1px solid var(--accent-water);
+    width:400px; max-width:90vw; background:var(--bg-mid); border:1px solid var(--accent-water);
     border-radius:12px; padding:20px; z-index:10; opacity:0; pointer-events:none;
     transition: opacity 0.25s ease, transform 0.25s ease;
     box-shadow:0 20px 50px rgba(0,0,0,0.7);
@@ -133,7 +133,7 @@
     opacity:1; pointer-events:auto; transform:translate(-50%, -50%) scale(1);
   }
   #modal h3{
-    margin:0 0 6px 0; font-size:18px; color:var(--accent-water);
+    margin:0 0 4px 0; font-size:18px; color:var(--accent-water);
     font-family: Georgia, 'Times New Roman', serif;
   }
   #modal .tag{
@@ -141,8 +141,14 @@
     color:var(--accent-flood); font-weight:700; margin-bottom:12px; display:block;
   }
   #modal p{
-    font-size:12.5px; line-height:1.6; color:var(--ink-dim); margin:0 0 16px 0;
+    font-size:12.5px; line-height:1.6; color:var(--ink-dim); margin:0 0 14px 0;
   }
+  #modal .info-box{
+    background:#0a0e14; border:1px solid var(--panel-border); border-radius:6px;
+    padding:10px; margin-bottom:16px; font-size:11.5px;
+  }
+  #modal .info-box div{ margin-bottom:4px; }
+  #modal .info-box div:last-child{ margin-bottom:0; }
   #modalClose{
     background:var(--panel-border); color:var(--ink); border:none;
     padding:6px 14px; border-radius:5px; font-size:11px; cursor:pointer;
@@ -213,13 +219,20 @@
     <label><input type="checkbox" id="toggleFloodZone" checked> Boundary outline</label>
     <label><input type="checkbox" id="toggleSpin"> Auto-rotate</label>
   </div>
-  <div class="hint">Click location label to view 2022 impact facts · Drag to orbit</div>
+  <div class="hint">Click location label for info card · Drag to orbit</div>
 </div>
 
 <div id="modal">
   <h3 id="modalTitle">City Name</h3>
-  <span class="tag" id="modalTag">2022 Impact Analysis</span>
-  <p id="modalBody">Details go here...</p>
+  <span class="tag" id="modalTag">LOCATION PROFILE</span>
+  
+  <div class="info-box">
+    <div><strong>Role:</strong> <span id="modalRole">--</span></div>
+    <div><strong>Region:</strong> <span id="modalRegion">--</span></div>
+    <div><strong>Geography:</strong> <span id="modalGeo">--</span></div>
+  </div>
+
+  <p id="modalBody">Description and details...</p>
   <button id="modalClose">Close</button>
 </div>
 
@@ -433,71 +446,119 @@ const flood=new THREE.Mesh(floodGeo, floodMat);
 flood.position.y=-1; 
 scene.add(flood);
 
-// Location Database with 2022 Flood Facts
+// Location Database with City & Province Information
 const LOCATIONS=[
   {
     name:"BALOCHISTAN", lon:65.50, lat:28.50, type:"PROVINCE",
-    fact:"Balochistan received over 500% above average monsoon rainfall in 2022. Severe flash flooding washed away entire mountain villages, destroyed 300+ bridges, cut off highway routes, and killed over 330 people."
+    role: "Largest Province by Area",
+    region: "South-West Pakistan",
+    geo: "Arid Plateau & Rugged Mountains",
+    fact:"Balochistan covers ~44% of Pakistan's total land area. It is rich in natural resources such as natural gas, copper, and gold. During monsoons, flash floods flow rapidly down its barren mountain slopes."
   },
   {
     name:"SINDH", lon:68.50, lat:26.00, type:"PROVINCE",
-    fact:"Sindh was the worst-affected province, receiving 784% above normal rainfall. Massive standing lakes were formed, submerging entire agricultural districts, displacing over 4.5 million people, and destroying millions of acres of cotton and rice crops."
+    role: "Second Most Populous Province",
+    region: "South Pakistan",
+    geo: "Lower Indus Plain & Thar Desert",
+    fact:"Sindh is an agricultural and industrial hub surrounding the lower stretches of the Indus River. It holds major economic nodes and extensive cotton, rice, and sugarcane fields."
   },
   {
     name:"PUNJAB", lon:72.50, lat:31.00, type:"PROVINCE",
-    fact:"Southern Punjab experienced catastrophic river overflows along the Indus and Chenab rivers, leading to severe damage to rural homes, livestock losses, and crop inundation in Rajanpur and Dera Ghazi Khan."
+    role: "Most Populous Province",
+    region: "East / Central Pakistan",
+    geo: "Alluvial Indus Basin Plain",
+    fact:"Known as the 'Land of Five Rivers' (Indus, Jhelum, Chenab, Ravi, Sutlej). Punjab produces the vast majority of the nation's wheat and agricultural output."
   },
   {
     name:"ISLAMABAD", lon:73.04, lat:33.68, type:"CAPITAL",
-    fact:"The federal capital saw urban stream surges and heavy downpours during the monsoon sequence, serving as the central coordination hub for international airlifts and disaster relief efforts."
+    role: "National Capital City",
+    region: "Islamabad Capital Territory",
+    geo: "Margalla Hills Foothills",
+    fact:"Built in the 1960s as a planned city to replace Karachi as the capital. It serves as the administrative center of Pakistan's federal government."
   },
   {
     name:"Rawalpindi", lon:73.07, lat:33.60, type:"CITY",
-    fact:"Experienced dangerous water level rises in Nullah Lai during intense rainfall spikes, requiring high-alert monitoring and community evacuations along low-lying drainage channels."
+    role: "Major Military & Industrial City",
+    region: "Punjab (Potohar Plateau)",
+    geo: "Hilly Plateau near Margalla Hills",
+    fact:"Adjacent twin city to Islamabad. It houses the General Headquarters (GHQ) of the Pakistan Armed Forces and major commercial logistics hubs."
   },
   {
     name:"Peshawar", lon:71.52, lat:34.01, type:"CITY",
-    fact:"Faced flash urban flooding and served as a critical transit route for emergency relief dispatch into devastated northern districts of Khyber Pakhtunkhwa."
+    role: "Provincial Capital of KP",
+    region: "Khyber Pakhtunkhwa",
+    geo: "Valley near Khyber Pass",
+    fact:"One of the oldest continuously inhabited cities in South Asia, historically acting as a gateway connecting South Asia with Central Asia via the Khyber Pass."
   },
   {
     name:"Chitral", lon:71.78, lat:35.85, type:"REGION",
-    fact:"Extreme glacial lake outburst floods (GLOFs) coupled with heavy downpours destroyed mountain bridges, roads, and power infrastructure, isolating high-altitude valleys."
+    role: "High-Altitude District",
+    region: "Khyber Pakhtunkhwa",
+    geo: "Hindu Kush Mountain Range",
+    fact:"Home to Tirich Mir (7,708m), the highest peak in the Hindu Kush. Known for alpine glaciers, Kalash valleys, and vulnerability to glacial lake outbursts."
   },
   {
     name:"Lahore", lon:74.35, lat:31.52, type:"CITY",
-    fact:"Sustained record monsoon rain spells causing urban inundation, while functioning as a major logistics hub for emergency supplies distributed to South Punjab."
+    role: "Cultural Capital of Pakistan",
+    region: "Punjab",
+    geo: "Ravi River Basin Plain",
+    fact:"Pakistan's 2nd largest city, famous for Mughal architecture like the Badshahi Mosque and Lahore Fort. It is a major educational and media center."
   },
   {
     name:"Faisalabad", lon:73.08, lat:31.42, type:"CITY",
-    fact:"Agricultural surrounding regions experienced crop disruption and urban drainage overflows due to prolonged rain spells during July and August 2022."
+    role: "Industrial & Textile Hub",
+    region: "Punjab",
+    geo: "Rechna Doab Plain",
+    fact:"Often called the 'Manchester of Pakistan' due to its massive textile manufacturing sector. It is the 3rd most populous city in the country."
   },
   {
     name:"Multan", lon:71.52, lat:30.15, type:"CITY",
-    fact:"Served as a key medical and emergency relief staging point for rural communities fleeing severe Indus River flooding in neighboring districts."
+    role: "City of Saints",
+    region: "Southern Punjab",
+    geo: "Chenab River Basin",
+    fact:"Renowned for its historic Sufi shrines, blue pottery, and agricultural exports such as mangoes and cotton."
   },
   {
     name:"Quetta", lon:66.97, lat:30.17, type:"CITY",
-    fact:"The provincial capital of Balochistan was briefly isolated from the rest of the country after floodwaters collapsed rail lines, telecommunication networks, and gas pipelines."
+    role: "Provincial Capital of Balochistan",
+    region: "Balochistan",
+    geo: "High-Altitude Mountain Valley",
+    fact:"Located at an average elevation of 1,680m (5,510 ft). Surrounded by mountains, it is known as the 'Fruit Garden of Pakistan'."
   },
   {
     name:"Sukkur", lon:68.85, lat:27.70, type:"CITY",
-    fact:"The historic Sukkur Barrage faced critical high-level river discharge tests as floodwaters from upper rivers concentrated in northern Sindh."
+    role: "Historic River Port & Canal Hub",
+    region: "Northern Sindh",
+    geo: "Indus River Basin",
+    fact:"Home to the Sukkur Barrage, built in 1932, which controls one of the largest irrigation canal networks in the world."
   },
   {
     name:"Larkana", lon:68.21, lat:27.56, type:"CITY",
-    fact:"Submerged under several feet of rainwater and flood runoff. Tens of thousands of displaced families were forced into temporary roadside relief camps."
+    role: "Historical & Agricultural Hub",
+    region: "Sindh",
+    geo: "Flat Indus Floodplain",
+    fact:"Located near the ancient Indus Valley Civilization ruins of Mohenjo-daro (circa 2500 BCE)."
   },
   {
     name:"Hyderabad", lon:68.37, lat:25.39, type:"CITY",
-    fact:"Faced urban flooding combined with riverbank stress along the lower Indus, disrupting power grids and water filtration plants for days."
+    role: "Cultural & Manufacturing Hub",
+    region: "Sindh",
+    geo: "East Bank of the Indus River",
+    fact:"The 2nd largest city in Sindh, historically serving as the capital of Sindh under the Kalhora and Talpur dynasties."
   },
   {
     name:"Karachi", lon:67.00, lat:24.86, type:"CITY",
-    fact:"Suffered multiple severe urban flooding events in July and August 2022, inundating major thoroughfares, commercial zones, and residential neighborhoods."
+    role: "Financial & Economic Capital",
+    region: "Sindh",
+    geo: "Arabian Sea Coastline",
+    fact:"Pakistan's largest city and chief seaport, generating a major share of national revenue and housing the country's main financial exchange."
   },
   {
     name:"Gwadar", lon:62.32, lat:25.12, type:"PORT CITY",
-    fact:"Experienced flash flooding along coastal channels that inundated low-lying settlements and damaged fishing infrastructure."
+    role: "Deep-Sea Port",
+    region: "South-West Balochistan",
+    geo: "Makran Coastal Line",
+    fact:"Key terminus of the China-Pakistan Economic Corridor (CPEC), positioned strategically near the Strait of Hormuz."
   }
 ];
 
@@ -507,18 +568,24 @@ const markerMat=new THREE.MeshBasicMaterial({color:0xffd479});
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// UI Elements for Fact Modal
+// UI Elements for Modal Card
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modalTitle');
 const modalTag = document.getElementById('modalTag');
+const modalRole = document.getElementById('modalRole');
+const modalRegion = document.getElementById('modalRegion');
+const modalGeo = document.getElementById('modalGeo');
 const modalBody = document.getElementById('modalBody');
 const modalClose = document.getElementById('modalClose');
 
 modalClose.addEventListener('click', ()=> modal.classList.remove('active'));
 
-function openFactModal(data){
+function openCityModal(data){
   modalTitle.textContent = data.name;
-  modalTag.textContent = (data.type || "LOCATION") + " · 2022 FLOOD IMPACT";
+  modalTag.textContent = (data.type || "LOCATION") + " INFORMATION";
+  modalRole.textContent = data.role || "N/A";
+  modalRegion.textContent = data.region || "N/A";
+  modalGeo.textContent = data.geo || "N/A";
   modalBody.textContent = data.fact;
   modal.classList.add('active');
 }
@@ -528,7 +595,7 @@ LOCATIONS.forEach(c=>{
   const e=elevation(c.lon,c.lat)*HEIGHT_SCALE;
   const m=new THREE.Mesh(new THREE.SphereGeometry(0.65,12,12), markerMat);
   m.position.set(p.x, e+0.9, p.z);
-  m.userData = c; // Attach location data
+  m.userData = c;
   cityGroup.add(m);
 
   const label=document.createElement('div');
@@ -536,7 +603,7 @@ LOCATIONS.forEach(c=>{
   label.innerHTML='<span class="pin"></span>'+c.name;
   label.addEventListener('click', (e)=>{
     e.stopPropagation();
-    openFactModal(c);
+    openCityModal(c);
   });
   document.body.appendChild(label);
 
@@ -544,9 +611,8 @@ LOCATIONS.forEach(c=>{
 });
 scene.add(cityGroup);
 
-// Raycasting to allow clicking directly on 3D pin spheres
+// Click raycaster for 3D sphere pins
 window.addEventListener('click', (e)=>{
-  // Ignore clicks on UI elements
   if(e.target.closest('#panel') || e.target.closest('#controls') || e.target.closest('#modal') || e.target.closest('#legend')) return;
 
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -557,7 +623,7 @@ window.addEventListener('click', (e)=>{
   if(intersects.length > 0){
     const clickedObj = intersects[0].object;
     if(clickedObj.userData && clickedObj.userData.name){
-      openFactModal(clickedObj.userData);
+      openCityModal(clickedObj.userData);
     }
   }
 });
